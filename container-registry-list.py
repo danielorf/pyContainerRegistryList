@@ -61,11 +61,23 @@ def get_v2catalog(base_url, **kwargs):
     else:
         headers = {}
 
+    repositories = []
     r1 = requests.get(catalog_url, params=params,headers=headers)
     header_link = r1.headers.get('link', None)
     if r1.ok:
-        # pp.pprint(r.json())
-        return dict(r1.json()).get('repositories')
+        # return dict(r1.json()).get('repositories')
+        repositories += dict(r1.json()).get('repositories')
+        while header_link:
+            link = header_link.split(';')[0].split('&')[0].replace('<', '')
+            rr = requests.get(base_url[:-1]+link, params=params,headers=headers)
+            if rr.ok:
+                repositories += dict(rr.json()).get('repositories')
+                header_link = rr.headers.get('link', None)
+                # print(repositories)
+            else:
+                break
+
+        return repositories
     else:
         # print("Failed to access registry catalog")
         return None
@@ -91,10 +103,12 @@ def get_repo_tags(base_url, repo):
 base_url = 'https://registry.suse.com/'
 # base_url = 'https://hub.docker.com/'
 # catalog = get_v2catalog(base_url, n=10).get('repositories')
-catalog = get_v2catalog(base_url, n=100)
+# catalog = get_v2catalog(base_url, n=10)
+catalog = get_v2catalog(base_url)
 pp.pprint(catalog)
-# catalog_dict = dict.fromkeys(catalog, '')
 
+
+# catalog_dict = dict.fromkeys(catalog, '')
 # for entry in catalog:
 #     print('.', end='')
 #     temp = get_repo_tags(base_url, entry)
@@ -102,19 +116,3 @@ pp.pprint(catalog)
 #         catalog_dict[entry] = temp.get('tags', '')
 # print()
 # pp.pprint(catalog_dict)
-
-
-
-
-# current_endpoint = ['https://registry.suse.com/v2/_catalog', 'registry:catalog:*']
-# current_endpoint = ['https://registry.suse.com/v2/caasp/v4/velum/tags/list', 'repository:caasp/v4/velum:pull']
-# current_endpoint = ['https://registry.suse.com/v2/caasp/v4/caasp-dex/tags/list', 'repository:caasp/v4/caasp-dex:pull']
-
-# token1 = get_token(current_endpoint[0], current_endpoint[1])
-
-# headers = {"Authorization": "Bearer " + token1}
-# r3 = requests.get(current_endpoint[0], headers=headers)
-# if r3.ok:
-#     pp.pprint(r3.json())
-# else:
-#     print("Failed to access registry catalog")
